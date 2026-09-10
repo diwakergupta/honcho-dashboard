@@ -16,8 +16,9 @@ class FakePeer {
   constructor(id: string) {
     this.id = id;
   }
-  async chat(query: string, _opts?: unknown) {
-    calls.push({ method: "peer.chat", args: [query] });
+  async chat(query: string, opts?: unknown) {
+    calls.push({ method: "peer.chat", args: [query, opts] });
+    if (query === "empty") return null;
     return "answer from " + this.id;
   }
   async representation(_opts?: unknown) {
@@ -244,6 +245,21 @@ describe("HonchoClient", () => {
     const c = new HonchoClient("key");
     const ans = await c.peerChat("bob", "who am i?");
     expect(ans).toBe("answer from bob");
+  });
+
+  test("peerChat returns null when peer returns no content", async () => {
+    const c = new HonchoClient("key");
+    const ans = await c.peerChat("bob", "empty");
+    expect(ans).toBeNull();
+  });
+
+  test("peerChat passes target and reasoningLevel options", async () => {
+    const c = new HonchoClient("key");
+    await c.peerChat("bob", "query", { target: "alice", reasoningLevel: "high" });
+    const lastCall = calls[calls.length - 1];
+    expect(lastCall.method).toBe("peer.chat");
+    expect(lastCall.args[0]).toBe("query");
+    expect(lastCall.args[1]).toEqual({ target: "alice", session: undefined, reasoningLevel: "high" });
   });
 
   test("conclusionsOf returns the Conclusion list", async () => {

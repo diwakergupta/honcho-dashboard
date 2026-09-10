@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,9 +23,22 @@ import {
   Sparkles,
   IdCard,
   Search,
+  RefreshCw,
+  Trash2,
 } from "lucide-react";
 
 type ReasoningLevel = "minimal" | "low" | "medium" | "high";
+
+interface ChatTurn {
+  id: string;
+  query: string;
+  target?: string;
+  reasoningLevel: ReasoningLevel;
+  timestamp: Date;
+  status: "pending" | "done" | "error";
+  answer?: string;
+  error?: string;
+}
 
 export default function PeerDetail() {
   const { peerId } = useParams<{ peerId: string }>();
@@ -41,38 +54,84 @@ export default function PeerDetail() {
   const [reasoningLevel, setReasoningLevel] = useState<ReasoningLevel>("medium");
   const [conclusionFilter, setConclusionFilter] = useState("");
 
-  const [chatHistory, setChatHistory] = useState<
-    Array<{ query: string; answer: string; target?: string; timestamp: Date }>
-  >([]);
+  const [chatHistory, setChatHistory] = useState<ChatTurn[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
-  const [chatError, setChatError] = useState<Error | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const handleSendChat = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const q = chatQuery.trim();
-    if (!q || chatLoading) return;
+  useEffect(() => {
+    if (chatHistory.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [chatHistory]);
+
+  const handleSendChat = async (e?: React.SyntheticEvent, retryTurnId?: string) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (chatLoading) return;
+
+    let q: string;
+    let turnTarget = target.trim() || undefined;
+    let turnReasoning = reasoningLevel;
+    let turnId: string;
+
+    if (retryTurnId) {
+      const existing = chatHistory.find((t) => t.id === retryTurnId);
+      if (!existing) return;
+      q = existing.query;
+      turnTarget = existing.target;
+      turnReasoning = existing.reasoningLevel;
+      turnId = retryTurnId;
+      setChatHistory((prev) =>
+        prev.map((t) =>
+          t.id === turnId ? { ...t, status: "pending", error: undefined } : t
+        )
+      );
+    } else {
+      q = chatQuery.trim();
+      if (!q) return;
+      turnId = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const newTurn: ChatTurn = {
+        id: turnId,
+        query: q,
+        target: turnTarget,
+        reasoningLevel: turnReasoning,
+        timestamp: new Date(),
+        status: "pending",
+      };
+      setChatHistory((prev) => [...prev, newTurn]);
+      setChatQuery("");
+    }
 
     setChatLoading(true);
-    setChatError(null);
     try {
       const answer = await client.peerChat(id, q, {
-        target: target.trim() || undefined,
-        reasoningLevel,
+        target: turnTarget,
+        reasoningLevel: turnReasoning,
       });
-      if (answer) {
-        setChatHistory((prev) => [
-          ...prev,
-          {
-            query: q,
-            answer,
-            target: target.trim() || undefined,
-            timestamp: new Date(),
-          },
-        ]);
-        setChatQuery("");
-      }
+
+      const finalAnswer =
+        answer && answer.trim()
+          ? answer
+          : `*No response was returned by ${id} for this query. The peer may not have sufficient context or conclusions.*`;
+
+      setChatHistory((prev) =>
+        prev.map((t) =>
+          t.id === turnId
+            ? { ...t, status: "done", answer: finalAnswer }
+            : t
+        )
+      );
     } catch (err) {
-      setChatError(err instanceof Error ? err : new Error(String(err)));
+      const msg = err instanceof Error ? err.message : String(err);
+      setChatHistory((prev) =>
+        prev.map((t) =>
+          t.id === turnId
+            ? { ...t, status: "error", error: msg }
+            : t
+        )
+      );
     } finally {
       setChatLoading(false);
     }
@@ -182,16 +241,33 @@ export default function PeerDetail() {
         {/* Dialectic Chat Box */}
         <Card className="border-border/70 bg-card/60 flex flex-col">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <MessageSquare className="h-4 w-4 text-cyan-400" /> Dialectic Query
-            </CardTitle>
-            <CardDescription>
-              Ask a question to hear this peer answer directly from its synthesized worldview.
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <MessageSquare className="h-4 w-4 text-cyan-400" /> Dialectic Query
+                </CardTitle>
+                <CardDescription>
+                  Ask a question to hear this peer answer directly from its synthesized worldview.
+                </CardDescription>
+              </div>
+              {chatHistory.length > 0 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setChatHistory([])}
+                  disabled={chatLoading}
+                  className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Clear
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col space-y-4">
             {/* Conversation History */}
-            <div className="flex-1 min-h-[160px] max-h-96 overflow-y-auto space-y-3 rounded-lg border border-border/50 bg-background/30 p-3">
+            <div className="flex-1 min-h-[180px] max-h-96 overflow-y-auto space-y-3 rounded-lg border border-border/50 bg-background/30 p-3">
               {chatHistory.length === 0 ? (
                 <div className="flex h-full flex-col items-center justify-center py-6 text-center text-xs text-muted-foreground">
                   <Sparkles className="h-6 w-6 mb-2 text-primary/60" />
@@ -201,11 +277,12 @@ export default function PeerDetail() {
                   </p>
                 </div>
               ) : (
-                chatHistory.map((item, idx) => (
-                  <div key={idx} className="space-y-2">
+                chatHistory.map((item) => (
+                  <div key={item.id} className="space-y-2">
+                    {/* User query bubble */}
                     <div className="flex justify-end">
-                      <div className="rounded-lg bg-primary/20 text-primary-foreground text-xs px-3 py-2 max-w-[85%] border border-primary/30">
-                        <p className="text-foreground">{item.query}</p>
+                      <div className="rounded-lg bg-primary/15 text-foreground text-xs px-3.5 py-2.5 max-w-[85%] border border-primary/30 shadow-sm">
+                        <p className="whitespace-pre-wrap leading-relaxed">{item.query}</p>
                         {item.target && (
                           <span className="text-[10px] text-muted-foreground block mt-1 font-mono">
                             viewpoint: {item.target}
@@ -213,41 +290,83 @@ export default function PeerDetail() {
                         )}
                       </div>
                     </div>
+
+                    {/* Peer response bubble */}
                     <div className="flex justify-start">
-                      <div className="rounded-lg bg-card text-xs p-3 max-w-[95%] border border-border/60">
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <PeerAvatar peerId={id} size="sm" />
-                          <span className="font-mono font-medium text-foreground">{id}</span>
-                          <span className="text-[10px] text-muted-foreground">
-                            {item.timestamp.toLocaleTimeString()}
-                          </span>
+                      {item.status === "pending" ? (
+                        <div className="rounded-lg bg-card text-xs p-3 max-w-[95%] border border-border/60 shadow-sm space-y-2 w-full">
+                          <div className="flex items-center gap-2">
+                            <PeerAvatar peerId={id} size="sm" />
+                            <span className="font-mono font-medium text-foreground">{id}</span>
+                            <Badge variant="outline" className="text-[9px] uppercase font-mono px-1.5 py-0 ml-auto">
+                              {item.reasoningLevel}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-2.5 py-2 text-xs text-muted-foreground">
+                            <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
+                            <span className="animate-pulse">
+                              Synthesizing answer from {id}'s worldview…
+                            </span>
+                          </div>
                         </div>
-                        <MarkdownView
-                          content={item.answer}
-                          maxHeightClass="max-h-60"
-                          allowToggle={false}
-                          className="border-none bg-transparent p-0"
-                        />
-                      </div>
+                      ) : item.status === "error" ? (
+                        <div className="rounded-lg bg-destructive/10 text-xs p-3 max-w-[95%] border border-destructive/30 space-y-2 w-full">
+                          <div className="flex items-center gap-2">
+                            <PeerAvatar peerId={id} size="sm" />
+                            <span className="font-mono font-medium text-foreground">{id}</span>
+                            <Badge variant="destructive" className="text-[9px] uppercase font-mono px-1.5 py-0 ml-auto">
+                              Failed
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-destructive break-words">
+                            {item.error || "Failed to generate answer from peer."}
+                          </p>
+                          <div className="pt-1">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={chatLoading}
+                              onClick={() => handleSendChat(undefined, item.id)}
+                              className="h-6 text-[11px] border-destructive/40 hover:bg-destructive/20 gap-1 px-2 text-foreground"
+                            >
+                              <RefreshCw className="h-3 w-3" />
+                              Retry query
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="rounded-lg bg-card text-xs p-3 max-w-[95%] border border-border/60 shadow-sm space-y-2 w-full">
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <PeerAvatar peerId={id} size="sm" />
+                            <span className="font-mono font-medium text-foreground">{id}</span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {item.timestamp.toLocaleTimeString()}
+                            </span>
+                            {item.reasoningLevel && (
+                              <Badge variant="outline" className="text-[9px] uppercase font-mono px-1.5 py-0 ml-auto">
+                                {item.reasoningLevel}
+                              </Badge>
+                            )}
+                            {item.answer && <CopyButton text={item.answer} label="Copy answer" />}
+                          </div>
+                          <MarkdownView
+                            content={item.answer || ""}
+                            maxHeightClass="max-h-72"
+                            allowToggle={false}
+                            className="border-none bg-transparent p-0"
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))
               )}
-
-              {chatLoading && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground p-2">
-                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                  <span>Synthesizing answer from {id}'s perspective…</span>
-                </div>
-              )}
-
-              {chatError && (
-                <ErrorState error={chatError} />
-              )}
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Input Controls */}
-            <form onSubmit={handleSendChat} className="space-y-3">
+            <form onSubmit={(e) => handleSendChat(e)} className="space-y-3">
               <div className="flex flex-col sm:flex-row gap-2">
                 <div className="flex items-center gap-1.5 flex-1">
                   <span className="text-xs text-muted-foreground whitespace-nowrap">Viewpoint:</span>
@@ -255,6 +374,7 @@ export default function PeerDetail() {
                     value={target}
                     onChange={(e) => setTarget(e.target.value)}
                     placeholder="optional target peer ID"
+                    disabled={chatLoading}
                     className="h-8 text-xs bg-background/50 font-mono"
                   />
                 </div>
@@ -265,6 +385,7 @@ export default function PeerDetail() {
                       <button
                         key={level}
                         type="button"
+                        disabled={chatLoading}
                         onClick={() => setReasoningLevel(level)}
                         className={`rounded px-2 py-0.5 text-[10px] uppercase font-mono transition-colors ${
                           reasoningLevel === level
@@ -284,13 +405,18 @@ export default function PeerDetail() {
                   value={chatQuery}
                   onChange={(e) => setChatQuery(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey || !e.shiftKey)) {
+                    if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
-                      handleSendChat();
+                      handleSendChat(e);
                     }
                   }}
-                  placeholder={`Ask ${id} anything… (Press Enter to send)`}
+                  placeholder={
+                    chatLoading
+                      ? `Waiting for ${id} to respond…`
+                      : `Ask ${id} anything… (Press Enter to send, Shift+Enter for newline)`
+                  }
                   rows={2}
+                  disabled={chatLoading}
                   className="min-h-[64px] pr-12 text-xs bg-background/50 resize-none"
                 />
                 <Button
@@ -299,7 +425,11 @@ export default function PeerDetail() {
                   disabled={chatLoading || !chatQuery.trim()}
                   className="absolute right-2 bottom-2 h-7 w-7 p-0 rounded-md shadow-sm"
                 >
-                  <Send className="h-3.5 w-3.5" />
+                  {chatLoading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Send className="h-3.5 w-3.5" />
+                  )}
                 </Button>
               </div>
             </form>

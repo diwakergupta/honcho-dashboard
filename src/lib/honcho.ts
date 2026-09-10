@@ -103,7 +103,7 @@ export class HonchoClient {
       baseURL: baseURL || undefined,
       workspaceId: workspaceId || undefined,
       maxRetries: 1,
-      timeout: 30000,
+      timeout: 180000,
     });
   }
 
