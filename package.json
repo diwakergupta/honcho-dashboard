@@ -1,7 +1,28 @@
 {
   "name": "honcho-dashboard",
   "version": "0.1.0",
-  "private": true,
+  "description": "A self-hosted single-page dashboard for inspecting Honcho agent memory, peers, sessions, conclusions, and perspectives.",
+  "license": "Apache-2.0",
+  "author": "Diwaker Gupta",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/diwakergupta/honcho-dashboard.git"
+  },
+  "bugs": {
+    "url": "https://github.com/diwakergupta/honcho-dashboard/issues"
+  },
+  "homepage": "https://github.com/diwakergupta/honcho-dashboard#readme",
+  "keywords": [
+    "honcho",
+    "ai",
+    "agents",
+    "memory",
+    "llm",
+    "bun",
+    "react",
+    "dashboard",
+    "developer-tools"
+  ],
   "type": "module",
   "scripts": {
     "dev": "bun --hot ./src/server.ts",

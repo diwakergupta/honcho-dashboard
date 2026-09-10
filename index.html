@@ -3,10 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Honcho Dashboard</title>
+    <title>Honcho Dashboard — Agent Memory Explorer</title>
+    <meta
+      name="description"
+      content="A self-hosted single-page dashboard for inspecting what Honcho has learned: workspaces, peers, sessions, conclusions, and agent perspectives."
+    />
+    <meta name="theme-color" content="#090d16" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="/src/styles.css" />
   </head>
-  <body class="bg-zinc-950 text-zinc-100 antialiased">
+  <body class="bg-[#090d16] text-zinc-100 antialiased selection:bg-cyan-500/20 selection:text-cyan-200">
     <div id="root"></div>
     <script type="module" src="/src/index.tsx"></script>
   </body>

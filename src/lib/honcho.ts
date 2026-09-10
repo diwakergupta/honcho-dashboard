@@ -84,9 +84,9 @@ function cardToString(card: string[] | string | null | undefined): string | null
 export class HonchoClient {
   private client: Honcho;
 
-  constructor(apiKey: string, baseURL?: string, workspaceId?: string) {
+  constructor(apiKey?: string, baseURL?: string, workspaceId?: string) {
     this.client = new Honcho({
-      apiKey,
+      apiKey: apiKey || undefined,
       baseURL: baseURL || undefined,
       workspaceId: workspaceId || undefined,
       maxRetries: 1,

@@ -21,7 +21,7 @@ serving layer — there is no npm, no Vite, no build step.
 | Install deps   | `bun install`      |                                                    |
 | Dev server     | `bun dev`          | HMR via `bun --hot`, http://localhost:3000         |
 | Production     | `bun start`        | Same server, no HMR (served from Bun build cache)  |
-| Tests          | `bun test`         | 20 tests across 3 files (tests/*.test.ts)         |
+| Tests          | `bun test`         | 30 tests across 4 files (tests/*.test.ts)         |
 | Typecheck      | `bun typecheck`    | `tsc --noEmit`                                    |
 
 No formatter and no linter are configured. Do not introduce them. Run
@@ -36,7 +36,7 @@ result. Tailwind v4 is compiled natively by Bun via the `bun-plugin-tailwind`
 plugin registered in `bunfig.toml` (`[serve.static]`). There is no separate
 build/watch loop and no static output directory.
 
-- Env vars: `PORT` (default `3000`), `HOST` (default `0.0.0.0`).
+- Env vars: `PORT` (default `3000`), `HOST` (default `localhost`).
 - The SPA catch-all `/*` in `Bun.serve` is what makes deep routes work on refresh.
 
 ## Architecture
@@ -52,26 +52,30 @@ src/
     client.ts           Client registry (singleton, connect/getClient/resetClient)
     config.ts           loadConfig/saveConfig/clearConfig (localStorage, key "honcho.config.v1")
     use-async.ts        useAsync<T>() hook: {data,error,loading,refetch}
-    utils.ts            cn() (clsx + tailwind-merge), truncate()
+    utils.ts            cn() (clsx + tailwind-merge), truncate(), formatDate()
+    avatar.tsx          Deterministic peer colors, initials, and <PeerAvatar>
   routes/
-    root.tsx            Auth guard: redirect to /login if no config; layout w/ <Sidebar>
+    root.tsx            Auth guard: redirect to /login if no config; layout w/ responsive <Sidebar>
     login.tsx           API key / base URL / workspace form; validates via metadata()
     index.tsx           Overview (thin wrapper around components/overview/overview.tsx)
     workspaces.tsx      List workspaces; select one to switch context
     peers.tsx           List peers
-    peers.$peerId.tsx   Peer detail: representation, conclusions, sessions, chat box
+    peers.$peerId.tsx   Peer detail: representation, conclusions, sessions, dialectic query console
     sessions.tsx        List sessions
-    sessions.$sessionId.tsx  Session detail: messages, summaries, search, LLM context
+    sessions.$sessionId.tsx  Session detail: messages transcript, summaries, search, LLM context
     compare.tsx         Side-by-side peer A / peer B (and optional target) comparison
   components/
     ui/                 Hand-rolled shadcn-style primitives (button, card, input, ...)
-    layout/sidebar.tsx  Navigation; sign-out clears config
+    layout/sidebar.tsx  Navigation; sign-out clears config; workspace switcher trigger
     shared/async-view.tsx  Loading/error/empty display for useAsync results
+    shared/markdown-view.tsx  Rendered markdown view with Raw/Formatted toggle and Copy
+    shared/copy-button.tsx    One-click copy with copied confirmation state
     overview/overview.tsx  Overview page body
 tests/
   client.test.ts        HonchoClient vs a faked SDK (mock.module before import)
   config.test.ts        config.ts localStorage round-trips (localStorage is stubbed)
   utils.test.ts         cn() and truncate()
+  avatar.test.ts        Deterministic hashing, palettes, and initials
 ```
 
 ### Invariants that keep this maintainable

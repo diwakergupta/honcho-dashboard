@@ -1,6 +1,6 @@
 import indexHtml from "../index.html";
 
-const host = process.env.HOST ?? "0.0.0.0";
+const host = process.env.HOST ?? "localhost";
 const port = Number(process.env.PORT ?? 3000);
 const isDev = process.argv.includes("--hot");
 

@@ -28,9 +28,13 @@ describe("config", () => {
     expect(loadConfig()).toBeNull();
   });
 
-  test("loadConfig returns null for missing apiKey", () => {
-    saveConfig({ apiKey: "" });
-    expect(loadConfig()).toBeNull();
+  test("loadConfig returns config when apiKey is empty (unauthenticated Honcho)", () => {
+    saveConfig({ apiKey: "", baseURL: "http://localhost:3001", workspaceId: "hermes" });
+    expect(loadConfig()).toEqual({
+      apiKey: "",
+      baseURL: "http://localhost:3001",
+      workspaceId: "hermes",
+    });
   });
 
   test("clearConfig removes config", () => {

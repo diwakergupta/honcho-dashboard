@@ -1,0 +1,9 @@
+node_modules
+.git
+.crush
+.env
+.env.*
+*.log
+tests
+.DS_Store
+Thumbs.db

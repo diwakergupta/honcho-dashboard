@@ -1,96 +1,132 @@
 # Honcho Dashboard
 
-A self-hosted, single-page dashboard for inspecting what your [Honcho](https://honcho.dev) agents have learned: workspaces, peers, sessions, conclusions, and a side-by-side "what different agents see" comparison view.
+[![CI](https://github.com/diwakergupta/honcho-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/diwakergupta/honcho-dashboard/actions/workflows/ci.yml)
+[![Bun](https://img.shields.io/badge/Bun-1.4+-black?logo=bun)](https://bun.sh)
+[![React](https://img.shields.io/badge/React-19-blue?logo=react)](https://react.dev)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-38bdf8?logo=tailwindcss)](https://tailwindcss.com)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-Built entirely with **Bun** — no Vite, no Node/npm. Bun is the package manager, runtime, test runner, and bundler/serving layer (Bun's native fullstack HTML-import routes + `Bun.serve`).
+A high-performance, self-hosted single-page dashboard for inspecting what your [Honcho](https://honcho.dev) memory service has learned: workspaces, peers, sessions, conclusions, and a side-by-side **"what different agents see"** perspective comparison view.
 
-## Stack
+It communicates **directly from your browser** to your self-hosted Honcho server using Bearer authentication — no backend server proxy required. The API key and configuration are safely stored in your browser's `localStorage`.
 
-- **Bun** — runtime, `bun test`, and `Bun.serve` fullstack mode (native HTML-import routes, JS/TSX bundling, and dev HMR)
-- **React 19** + **react-router** (v7) — `createBrowserRouter` with nested routes
-- **Tailwind CSS 4** — compiled natively by Bun via the `bun-plugin-tailwind` bundler plugin (registered in `bunfig.toml`); hand-rolled shadcn-style UI components
-- **@honcho-ai/sdk 2.4.0** — targets the current v3 Honcho API. The SDK makes browser-direct API calls to your self-hosted Honcho server (Bearer auth via the API key you paste at login)
+---
 
-## Getting started
+## Highlights & Features
+
+- 🧠 **Synthesized Working Representations** — Beautiful markdown rendering of human-readable peer models with raw/formatted toggles and one-click copy.
+- 💬 **Interactive Dialectic Console** — Ask peers questions directly and observe how they reason from their learned worldview, with adjustable reasoning levels (`minimal`, `low`, `medium`, `high`) and target viewpoints.
+- 🔀 **Perspective Comparison (`/compare`)** — Contrast how different agents perceive the world or each other side-by-side. Inspect differing beliefs about the same target subject.
+- 🔍 **Semantic Knowledge Search** — Workspace-wide and session-scoped semantic search with instantaneous result preview and token metrics.
+- ⚡ **Real-Time Processing Queue** — Visual progress monitoring of completed, in-progress, and pending Honcho work units.
+- 🤖 **LLM Context Assembly Inspector** — Inspect the exact prompts, system summaries, and windowed messages that Honcho feeds to downstream LLMs.
+- 🏢 **Multi-Workspace Context Switcher** — Seamlessly navigate between multiple workspaces or instantiate new memory scopes.
+- 📱 **Responsive & Refined UI** — Built with Tailwind CSS v4, dark obsidian theme, deterministic peer identity avatars, and mobile drawer navigation.
+
+---
+
+## Tech Stack
+
+- **Runtime & Bundler**: [Bun](https://bun.sh) — package manager, test runner, and `Bun.serve` fullstack HTML-import bundler (no Vite, no Webpack).
+- **Frontend**: [React 19](https://react.dev) + [React Router v7](https://reactrouter.com).
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com) compiled natively by Bun via `bun-plugin-tailwind`.
+- **Icons**: [Lucide React](https://lucide.dev).
+- **SDK**: [`@honcho-ai/sdk`](https://www.npmjs.com/package/@honcho-ai/sdk) 2.4.0 (targeting the v3 Honcho API).
+
+---
+
+## Quickstart
+
+### Option 1: Run with Bun (Recommended)
 
 ```sh
+# Clone the repository
+git clone https://github.com/diwakergupta/honcho-dashboard.git
+cd honcho-dashboard
+
+# Install dependencies
 bun install
-bun dev          # http://localhost:3000 with hot module reload (bun --hot)
+
+# Start development server with Hot Module Reloading (HMR)
+bun dev
 ```
 
-In the browser you'll be redirected to `/login`. Paste:
+Visit [http://localhost:3000](http://localhost:3000). The dashboard comes preconfigured for local Honcho:
 
-- **API key** — required. Honcho issues these per workspace/user.
-- **Base URL** — optional. Leave blank for the default Honcho cloud endpoint.
-  Set to your self-hosted server, e.g. `http://localhost:8000`.
-- **Workspace ID** — optional. Set it to scope the dashboard to one workspace;
-  leave blank to browse all workspaces you have access to.
+- **API Key** (*optional*): Leave blank if your local Honcho instance runs unauthenticated.
+- **Server URL** (*prefilled*): Preconfigured to `http://localhost:3001`. If you omit `http://`, it will be added automatically.
+- **Workspace ID** (*prefilled*): Preconfigured to `hermes`.
 
-The config is stored in `localStorage` under `honcho.config.v1`. Sign out from the sidebar to clear it.
+To serve in production mode:
+```sh
+bun start
+```
 
-### Production
+---
+
+### Option 2: Run with Docker / Docker Compose
+
+You can launch the dashboard with Docker in one command:
 
 ```sh
-bun start        # serves on http://localhost:3000 (no HMR)
+docker compose up -d
 ```
 
-`bun start` runs the same server as `bun dev` but without the `--hot` flag, so
-asset bundling is served from Bun's build cache instead of re-bundling each request.
+Or build and run manually:
+```sh
+docker build -t honcho-dashboard .
+docker run -d -p 3000:3000 --name honcho-dashboard honcho-dashboard
+```
 
-### Tests & typecheck
+The dashboard will be live at `http://localhost:3000`.
+
+---
+
+## Configuration & CORS
+
+Because the dashboard communicates directly from the browser to your Honcho server, your self-hosted Honcho instance must allow CORS requests from the dashboard's origin (e.g. `http://localhost:3000`).
+
+In your Honcho server environment, ensure:
+```sh
+CORS_ORIGINS=["http://localhost:3000"]
+```
+
+Configuration is persisted in browser `localStorage` under the key `honcho.config.v1`. To disconnect or change servers, click **Sign out** at the bottom of the sidebar.
+
+---
+
+## Environment Variables
+
+| Variable | Default   | Description                                          |
+| -------- | --------- | ---------------------------------------------------- |
+| `PORT`   | `3000`      | HTTP port the server listens on                      |
+| `HOST`   | `localhost` | Bind address (defaults to localhost)                 |
+
+---
+
+## Testing & Verification
 
 ```sh
-bun test         # 20 tests across 3 files
-bun typecheck    # tsc --noEmit
+# Run all automated tests
+bun test
+
+# Run TypeScript compiler check
+bun typecheck
 ```
 
-## How the server works
+---
 
-`src/server.ts` imports `index.html` and passes it to `Bun.serve` as the route for
-`/` and the SPA catch-all `/*`. Bun's bundler scans the HTML for `<script>` and
-`<link>` tags, bundles the referenced TSX and CSS (with HMR in dev), and serves the
-result — so there is no separate Vite/build-server step and no custom watch/rebuild
-loop.
+## Architecture & Conventions
 
-Tailwind CSS v4 is compiled natively by Bun through the **`bun-plugin-tailwind`**
-bundler plugin, registered in `bunfig.toml`:
+- **SDK Isolation Boundary**: `src/lib/honcho.ts` is the *only* file that imports `@honcho-ai/sdk`. All UI components interact strictly with `HonchoClient`.
+- **Client Registry**: `src/lib/client.ts` manages singleton instance lifecycle across workspace transitions.
+- **HTML-Import Routing**: `src/server.ts` maps `/` and SPA catch-all `/*` to `index.html`. Bun bundles linked scripts and styles on the fly.
+- **Tailwind Native Compilation**: Bun processes `src/styles.css` using `bun-plugin-tailwind` configured in `bunfig.toml`.
 
-```toml
-[serve.static]
-plugins = ["bun-plugin-tailwind"]
-```
+See [`AGENTS.md`](./AGENTS.md) for architectural invariants and contributing guidelines.
 
-With that in place `src/styles.css` (which starts with `@import "tailwindcss"`) is
-processed by Bun's own CSS pipeline — no PostCSS step, no build script, no
-pre-compiled static file. `index.html` links it directly via
-`<link rel="stylesheet" href="/src/styles.css" />`.
+---
 
-## Environment variables
+## License
 
-| Var    | Default     | Description                          |
-| ------ | ----------- | ------------------------------------ |
-| `PORT` | `3000`      | HTTP port the dashboard listens on   |
-| `HOST` | `0.0.0.0`   | Bind address (0.0.0.0 by default so it is reachable on the network) |
-
-## Pages
-
-- **Overview** (`/`) — stat cards, semantic search, recent peers/sessions, and the
-  processing-queue status (completed / in-progress / pending work units)
-- **Workspaces** (`/workspaces`) — list all workspaces the API key can see; switch context
-- **Peers** (`/peers`) — list peers; click one for its **working representation**,
-  self-conclusions, sessions, and a chat box
-- **Sessions** (`/sessions`) — list sessions; click one for messages, short/long
-  summaries, and the exact context an LLM sees
-- **Compare** (`/compare`) — pick peer A, peer B (and an optional target) to see
-  their representations and cards side by side. This is the "what different agents
-  see" view.
-
-## SDK version
-
-This dashboard is written against **@honcho-ai/sdk 2.4.0**, which targets the current
-**v3 Honcho API** (e.g. `peers()`, `sessions()`, `representation()` returning a string,
-`conclusionsOf()`, `queueStatus()`, and `workspaces()` returning a `Page`). The
-`HonchoClient` wrapper in `src/lib/honcho.ts` normalizes the SDK's return types into a
-single clean interface so the page components don't deal with them directly. If your
-self-hosted Honcho server is an older v2 build, some pages may fail to load data at
-runtime — in that case downgrade the SDK to a version matching your server.
+Released under the [Apache 2.0 License](LICENSE).

@@ -19,7 +19,7 @@ export function resetClient(): void {
   client = null;
 }
 
-export function connect(apiKey: string, baseURL?: string, workspaceId?: string): HonchoClient {
+export function connect(apiKey?: string, baseURL?: string, workspaceId?: string): HonchoClient {
   const c = new HonchoClient(apiKey, baseURL, workspaceId);
   client = c;
   return c;

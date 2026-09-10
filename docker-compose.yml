@@ -1,0 +1,10 @@
+services:
+  honcho-dashboard:
+    build: .
+    container_name: honcho-dashboard
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - HOST=localhost
+    restart: unless-stopped

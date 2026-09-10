@@ -1,5 +1,5 @@
 export interface DashConfig {
-  apiKey: string;
+  apiKey?: string;
   baseURL?: string;
   workspaceId?: string;
 }
@@ -12,7 +12,7 @@ export function loadConfig(): DashConfig | null {
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as DashConfig;
-    if (!parsed.apiKey) return null;
+    if (typeof parsed !== "object" || parsed === null) return null;
     return parsed;
   } catch {
     return null;
