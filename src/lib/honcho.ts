@@ -81,12 +81,25 @@ function cardToString(card: string[] | string | null | undefined): string | null
  * directly from the browser; the SDK handles transport/auth to the
  * self-hosted server.
  */
+// Ensure global process.env exists in browser runtimes so the SDK does not throw
+// ReferenceError when evaluating fallback environment variables (e.g. HONCHO_API_KEY).
+if (typeof globalThis.process === "undefined") {
+  (globalThis as unknown as { process: { env: Record<string, string | undefined> } }).process = {
+    env: {},
+  };
+}
+
 export class HonchoClient {
   private client: Honcho;
 
   constructor(apiKey?: string, baseURL?: string, workspaceId?: string) {
+    if (typeof globalThis.process === "undefined") {
+      (globalThis as unknown as { process: { env: Record<string, string | undefined> } }).process = {
+        env: {},
+      };
+    }
     this.client = new Honcho({
-      apiKey: apiKey || undefined,
+      apiKey: apiKey?.trim() || undefined,
       baseURL: baseURL || undefined,
       workspaceId: workspaceId || undefined,
       maxRetries: 1,

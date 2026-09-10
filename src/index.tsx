@@ -1,3 +1,11 @@
+// Ensure global process.env exists in browser runtimes so the SDK does not throw
+// ReferenceError when evaluating fallback environment variables (e.g. HONCHO_API_KEY).
+if (typeof globalThis.process === "undefined") {
+  (globalThis as unknown as { process: { env: Record<string, string | undefined> } }).process = {
+    env: {},
+  };
+}
+
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
